@@ -1,2 +1,2 @@
 # ctsetlin
-A Tsetlin Machine writen in C 
+A Tsetlin Machine written in C. 
