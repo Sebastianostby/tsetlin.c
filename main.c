@@ -11,16 +11,19 @@ void xor_experiment() {
     int **X;
     int *Y;
 
-    get_xor(N, M, 0.2, &X, &Y, true);
+    get_xor(N, M, 0.2, &X, &Y, false);
 
 }
 
 
 void tm_experiment() {
 
+    int N = 10;
+    int M = 6;
     int **X;
-    int *y;
+    int *Y;
 
+    get_xor(N, M, 0.2, &X, &Y, false);
 
     TsetlinMachine* tm = allocate_memory(10, 2, 100, 50, 10.0, 42);
     printf("Clauses: %d\n", tm->num_clauses);
@@ -52,7 +55,7 @@ void tm_experiment() {
     }
     printf("\n");
 
-    train(tm, X, y, 1000);
+    train(tm, X, Y, 1000);
 
 }
 

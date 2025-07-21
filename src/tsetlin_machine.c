@@ -3,6 +3,8 @@
 #include "../include/tsetlin_machine.h"
 #include "../include/rng.h"
 #include "../include/perf_counter.h"
+#include "../include/metrics.h"
+#include "../include/core.h"
 
 
 TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_literals, int threshold, float s, int seed) 
@@ -57,6 +59,8 @@ TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_litera
 
 void train(TsetlinMachine* tm, int **X, int *y, int epochs) 
 {
+    int n_instances = 0;
+    while (X[n_instances] != NULL) n_instances++;
 
     printf("Training TM for %d epochs...\n", epochs);
 
@@ -64,13 +68,52 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
     float eval_acc = 0.0;
     float best_eval_acc = 0.0;
 
+    int y_hat[n_instances];
+
+    int clause_outputs[tm->num_clauses];
+    int vote_values[tm->num_classes];
+    int vote_values_clamped[tm->num_classes];
+
+
     for (int epoch = 0; epoch < epochs; epoch++)
     {
         double st = perf_counter();
-        // train and update TM
+        
+        memset(y_hat, 0, n_instances * sizeof(int));
+
+        for (int i = 0; i < n_instances; i++)
+        {
+
+            int *instance = X[i];  
+            int target = y[i];
+
+            memset(clause_outputs, 1, tm->num_clauses * sizeof(int));
+            memset(vote_values, 0, tm->num_classes * sizeof(int));
+
+            // evaluate_clauses_training()
+
+            dot(clause_outputs, tm->W, vote_values, tm->num_classes, tm->num_clauses); // When i printed the vote values, they were WERT LARGE!! Is this error?
+            clip(vote_values, vote_values_clamped, tm->num_classes, tm->threshold); // Clamp worked!
+
+            int not_target = (target + 1 + randint(tm->num_classes - 1)) % tm->num_classes;
+
+            int v_clamped_pos = vote_values_clamped[target];
+
+            float pos_update_p =  (tm->threshold - v_clamped_pos) / (2*tm->threshold);
+
+            int v_clamped_neg = vote_values_clamped[not_target];
+
+            float neg_update_p =  (tm->threshold + v_clamped_neg) / (2*tm->threshold);
+            
+            // update_clauses()
+
+        }
+        
         double et = perf_counter();
         
-        printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch, epochs, et-st, train_acc, eval_acc, best_eval_acc);
+        train_acc = accuracy_score(y_hat, y, n_instances);
+
+        printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
     }
     
 
