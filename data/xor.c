@@ -55,7 +55,7 @@ void get_xor(int N, int M, float noise_level, int ***X_ptr, int **y_ptr, bool ve
         for (int i = 0; i < N; i++) {
             printf("%d ", Y[i]);
         }
-        printf("]");
+        printf("]\n");
 
     }
 
