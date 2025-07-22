@@ -20,9 +20,9 @@ typedef struct {
 } TsetlinMachine;
 
 TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_literals, int threshold, float s, int seed);
-
-
-
 void train(TsetlinMachine* tm, int **X, int *y, int epochs);
 
 #endif
+
+
+                                                                                        

@@ -25,7 +25,7 @@ void tm_experiment() {
 
     get_xor(N, M, 0.2, &X, &Y, false);
 
-    TsetlinMachine* tm = allocate_memory(10, 2, 100, 50, 10.0, 42);
+    TsetlinMachine* tm = allocate_memory(10, 2, 6, 50, 10.0, 42);
     printf("Clauses: %d\n", tm->num_clauses);
     printf("Classes: %d\n", tm->num_classes);  
     printf("Literals: %d\n", tm->num_literals);

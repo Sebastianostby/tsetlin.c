@@ -1,4 +1,4 @@
-
+#include "../include/metrics.h"
 
 double accuracy_score(int *y_hat, int *y, int n_instances) {
     if (n_instances <= 0) return 0.0;

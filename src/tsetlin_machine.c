@@ -35,7 +35,6 @@ TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_litera
             tm->C[i][j] = 0;
         }
         
-
     }
     
     // create W matrix, are we going to have problems with this is just int8? need int32
@@ -87,11 +86,12 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
             int *instance = X[i];  
             int target = y[i];
 
-            memset(clause_outputs, 1, tm->num_clauses * sizeof(int));
+            for (int j = 0; j < tm->num_clauses; j++) clause_outputs[j] = 1; 
             memset(vote_values, 0, tm->num_classes * sizeof(int));
+            memset(vote_values_clamped, 0, tm->num_classes * sizeof(int));
 
-            // evaluate_clauses_training()
-
+            evaluate_clauses_training(tm->C, clause_outputs, instance, tm->num_literals, tm->num_clauses);
+        
             dot(clause_outputs, tm->W, vote_values, tm->num_classes, tm->num_clauses); // When i printed the vote values, they were WERT LARGE!! Is this error?
             clip(vote_values, vote_values_clamped, tm->num_classes, tm->threshold); // Clamp worked!
 
@@ -105,7 +105,9 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
 
             float neg_update_p =  (tm->threshold + v_clamped_neg) / (2*tm->threshold);
             
-            // update_clauses()
+            update_clauses(tm->C, tm->W, clause_outputs, instance, tm->num_literals, target, not_target, tm->num_clauses, pos_update_p, neg_update_p);
+            
+            y_hat[i] = argmax(vote_values, tm->num_classes);
 
         }
         
@@ -113,7 +115,7 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
         
         train_acc = accuracy_score(y_hat, y, n_instances);
 
-        printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
+        // printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
     }
     
 
