@@ -11,7 +11,7 @@ typedef struct {
     int seed;
 
     float s_min_inv;
-    float s_min;
+    float s_inv;
 
     int **C;
     int **W;

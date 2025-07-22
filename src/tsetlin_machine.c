@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../include/tsetlin_machine.h"
 #include "../include/rng.h"
 #include "../include/perf_counter.h"
@@ -10,7 +11,7 @@
 TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_literals, int threshold, float s, int seed) 
 {
 
-    // Still not defining seed for random stuff!!
+    srand(seed);
 
     TsetlinMachine* tm = malloc(sizeof(TsetlinMachine));
 
@@ -20,8 +21,8 @@ TsetlinMachine* allocate_memory(int num_clauses, int num_classes, int num_litera
     tm->threshold = threshold;
     tm->s = s;
     
-    tm->s_min_inv = (s-1)/s;
-    tm->s_min =  1/s;
+    tm->s_min_inv = (float)(s-1)/(float)s;
+    tm->s_inv =  1.0f/(float)s;
     
 
     // create C matrix
@@ -96,16 +97,16 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
             clip(vote_values, vote_values_clamped, tm->num_classes, tm->threshold); // Clamp worked!
 
             int not_target = (target + 1 + randint(tm->num_classes - 1)) % tm->num_classes;
-
+            
             int v_clamped_pos = vote_values_clamped[target];
 
-            float pos_update_p =  (tm->threshold - v_clamped_pos) / (2*tm->threshold);
-
+            float pos_update_p = (tm->threshold - v_clamped_pos) / (2.0f *tm->threshold); // make sure that the probs are floats
+            
             int v_clamped_neg = vote_values_clamped[not_target];
 
-            float neg_update_p =  (tm->threshold + v_clamped_neg) / (2*tm->threshold);
+            float neg_update_p =  (tm->threshold + v_clamped_neg) / (2.0f *tm->threshold);
             
-            update_clauses(tm->C, tm->W, clause_outputs, instance, tm->num_literals, target, not_target, tm->num_clauses, pos_update_p, neg_update_p);
+            update_clauses(tm->C, tm->W, clause_outputs, instance, tm->num_literals, target, not_target, tm->num_clauses, pos_update_p, neg_update_p, tm->s_min_inv, tm->s_inv);
             
             y_hat[i] = argmax(vote_values, tm->num_classes);
 
@@ -115,7 +116,7 @@ void train(TsetlinMachine* tm, int **X, int *y, int epochs)
         
         train_acc = accuracy_score(y_hat, y, n_instances);
 
-        // printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
+        printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
     }
     
 

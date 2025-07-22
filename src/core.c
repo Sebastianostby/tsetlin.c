@@ -36,25 +36,164 @@ void evaluate_clauses_training(int **C, int *clause_outputs, int *literals, int 
 }
 
 
-void update_clauses(int **C, int **W, int *clause_outputs, int *literals, int num_literals, int target, int not_target, int num_clauses, float pos_update_p, float neg_update_p)
+void update_clauses(int **C, int **W, int *clause_outputs, int *literals, int num_literals, int target, int not_target, int num_clauses, float pos_update_p, float neg_update_p, float s_min_inv, float s_inv)
 {
 
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
-    {
+    {   
         if (random() <= pos_update_p)
         {
-            /* code */
+            update_clause(C, W, 1, literals, num_literals, clause_outputs, clause_k, target, s_min_inv, s_inv);
         }
 
         if (random() <= neg_update_p)
         {
-            /* code */
+            update_clause(C, W, -1, literals, num_literals, clause_outputs, clause_k, not_target, s_min_inv, s_inv);
         }
             
     }
     
 }
 
+
+void update_clause(int **C, int **W, int target, const int *literals, int num_literals, const int *clause_output, int clause_k, int class_k, float s_min_inv, float s_inv)
+{
+    int sign;
+    if (W[class_k][clause_k] >= 0) sign = 1; else sign = -1;
+
+
+    if (target * sign > 0)
+    {
+        if (clause_output[clause_k] == 1)
+        {
+            W[class_k][clause_k] += sign;
+            T1aFeedback(C, clause_k, literals, num_literals, s_min_inv, s_inv);
+        }
+        else
+        {
+            T1bFeedback(C, clause_k, num_literals, s_inv);
+        }
+    }
+    
+    else if (target * sign < 0)
+    {
+        if (clause_output[clause_k] == 1)
+        {
+            W[class_k][clause_k] -= sign;
+            T2Feedback(C, clause_k, literals, num_literals);
+        }
+        
+    }
+    
+    
+}
+
+void T1aFeedback(int **C, int clause_k, const int *literals, int num_literals, float s_min_inv, float s_inv) 
+{
+    int upper_state =  127;
+    int lower_state = -127;
+
+
+    for (int literal_k = 0; literal_k < num_literals; literal_k++)
+    {
+        if (literals[literal_k] == 1)
+        {
+            if(random() <= s_min_inv)
+            {
+                if (C[clause_k][literal_k] < upper_state)
+                {
+                    C[clause_k][literal_k] ++;
+                }
+            }
+
+            if (random() <= s_inv)
+            {
+                if (C[clause_k][literal_k + num_literals] > lower_state)
+                {
+                    C[clause_k][literal_k + num_literals] --;
+                }
+                
+            }
+            
+        }
+        else
+        {
+            if (random() <= s_inv)
+            {
+                if (C[clause_k][literal_k] > lower_state)
+                {
+                    C[clause_k][literal_k] --;
+                }
+            }
+
+            if(random() <= s_min_inv)
+            {
+                if (C[clause_k][literal_k + num_literals] < upper_state)
+                {
+                    C[clause_k][literal_k + num_literals] ++;
+                }
+            }
+
+        }
+        
+    }
+    
+
+
+}
+
+void T1bFeedback(int **C, int clause_k, int num_literals, float s_inv) 
+{
+    int lower_state = -127;
+
+    for (int literal_k = 0; literal_k < num_literals; literal_k++)
+    {
+        if (random() <= s_inv)
+        {
+            if (C[clause_k][literal_k] > lower_state)
+            {
+                C[clause_k][literal_k] --;
+            }
+            
+        }
+
+        if (random() <= s_inv)
+        {
+            if (C[clause_k][literal_k + num_literals] > lower_state)
+            {
+                C[clause_k][literal_k + num_literals] --;
+            }
+        }
+        
+    }
+    
+
+}
+
+void T2Feedback(int **C, int clause_k, const int *literals, int num_literals)
+{
+    for (int literal_k = 0; literal_k < num_literals; literal_k++)
+    {
+        if (literals[literal_k] == 0)
+        {
+            if (C[clause_k][literal_k] <= 0)
+            {
+                C[clause_k][literal_k] ++;
+            }
+            
+        }
+
+        else
+        {
+            if (C[clause_k][literal_k + num_literals] <= 0)
+            {
+                C[clause_k][literal_k + num_literals] ++;
+            }
+        }
+        
+    }
+    
+}
 
 
 void dot(int *clause_outputs, int **W, int *vote_values, int num_classes, int num_clauses) 
@@ -68,11 +207,14 @@ void dot(int *clause_outputs, int **W, int *vote_values, int num_classes, int nu
 
 void clip(int *vote_values, int *vote_values_clamped, int num_classes, int threshold)
 {
-    for (int i = 0; i < num_classes; i++) {
-       if (vote_values[i] < -threshold) {
-           vote_values_clamped[i] = -threshold;
-       } else if (vote_values[i] > threshold) {
-           vote_values_clamped[i] = threshold;
+    for (int class_k = 0; class_k < num_classes; class_k++) {
+       if (vote_values[class_k] < -threshold) {
+           vote_values_clamped[class_k] = -threshold;
+       } else if (vote_values[class_k] > threshold) {
+           vote_values_clamped[class_k] = threshold;
+       }
+       else {
+           vote_values_clamped[class_k] = vote_values[class_k];
        }
    }
 }
