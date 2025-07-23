@@ -3,6 +3,7 @@
 
 obj/
 bin/
+data/RAW_FILES/
 .vscode/
 # Object files
 *.o

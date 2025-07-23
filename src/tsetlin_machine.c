@@ -92,15 +92,11 @@ void train(TsetlinMachine* tm, int epochs)
             memset(vote_values, 0, tm->num_classes * sizeof(int));
             memset(vote_values_clamped, 0, tm->num_classes * sizeof(int));
 
-            // double st_eval = perf_counter();
             evaluate_clauses_training(tm->C, clause_outputs, instance, tm->num_literals, tm->num_clauses);
-            // double et_eval = perf_counter();
 
-            // double st_dot = perf_counter();
             dot(clause_outputs, tm->W, vote_values, tm->num_classes, tm->num_clauses); 
-            clip(vote_values, vote_values_clamped, tm->num_classes, tm->threshold); 
-            // double et_dot = perf_counter();
 
+            clip(vote_values, vote_values_clamped, tm->num_classes, tm->threshold); 
 
             int not_target = (target + 1 + fast_random_int(&tm->rng, tm->num_classes - 1)) % tm->num_classes;
             
@@ -112,14 +108,7 @@ void train(TsetlinMachine* tm, int epochs)
 
             float neg_update_p =  (tm->threshold + v_clamped_neg) / (2.0f *tm->threshold);
             
-            // double st_update = perf_counter();
             update_clauses(tm->C, tm->W, clause_outputs, instance, tm->num_literals, target, not_target, tm->num_clauses, pos_update_p, neg_update_p, tm->s_min_inv, tm->s_inv, &tm->rng);
-            // double et_update = perf_counter();
-
-            // if (i % 100 == 0) {
-            //     printf("Eval: %fs, Dot: %fs, Update: %fs\n", 
-            //     et_eval-st_eval, et_dot-st_dot, et_update-st_update);
-            //     }
 
             y_hat[i] = argmax(vote_values, tm->num_classes);
 
@@ -149,12 +138,7 @@ void train(TsetlinMachine* tm, int epochs)
             best_eval_acc = eval_acc;
         }
 
-        printf("[%d/%d] Train Time: %fs, Train Acc: %f%%, Eval Acc: %f%%, Best Eval Acc: %f%%\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
-
-        if (eval_acc== 1.0)
-        {
-            break;
-        }
+        printf("[%d/%d] Train Time: %fs, Train Acc: %f, Eval Acc: %f, Best Eval Acc: %f\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
         
     }
     double et_train = perf_counter();
