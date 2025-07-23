@@ -10,6 +10,8 @@
 void get_xor(int N, int M, float noise_level, int ***X_ptr, int **y_ptr, bool verbose) {
 
     
+    // srand((unsigned int)time(NULL));
+
     int **X = malloc(N * sizeof(int*));   // Allocate array of pointers for X
     int *Y = malloc(N * sizeof(int));
 
@@ -17,7 +19,7 @@ void get_xor(int N, int M, float noise_level, int ***X_ptr, int **y_ptr, bool ve
     
     for (int i = 0; i < N; i++)
     {
-        X[i] = malloc(M * sizeof(int));
+        X[i] = malloc(2 * sizeof(int));
         
         for (int j = 0; j < M; j++)
         {
@@ -26,7 +28,7 @@ void get_xor(int N, int M, float noise_level, int ***X_ptr, int **y_ptr, bool ve
         
         Y[i] = X[i][0] ^ X[i][1];
         
-        if (random_prob() < noise_level) Y[i] = Y[i] ^ 1; // flip the label to add noise based on fraction?
+        if (random_prob() < noise_level) Y[i] = !Y[i]; // flip the label to add noise based on fraction.
         
 
     }
