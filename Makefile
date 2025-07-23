@@ -1,20 +1,34 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -pedantic -g -Iinclude
+CFLAGS = -Wall -Wextra -std=c99 -pedantic -O3 -march=native -flto -Iinclude
+LDFLAGS = -flto
 TARGET = bin/main
 SRCDIR = src
 DATADIR = data
 OBJDIR = obj
 BINDIR = bin
 
+# Enable parallel compilation
+MAKEFLAGS += -j$(shell nproc)
+
 SOURCES = $(wildcard *.c) $(wildcard $(SRCDIR)/*.c) $(wildcard $(DATADIR)/*.c)
 OBJECTS = $(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(SOURCES)))
 
-.PHONY: all clean run debug
+.PHONY: all clean run debug release
 
-all: $(TARGET)
+# Default target is now optimized
+all: release
+
+# Release build with maximum optimization
+release: CFLAGS += -DNDEBUG -fomit-frame-pointer
+release: $(TARGET)
+
+# Debug build (your original flags plus debug info)
+debug: CFLAGS = -Wall -Wextra -std=c99 -pedantic -g -O0 -DDEBUG -Iinclude
+debug: LDFLAGS = 
+debug: $(TARGET)
 
 $(TARGET): $(OBJECTS) | $(BINDIR)
-	$(CC) $(OBJECTS) -o $@
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -37,5 +51,11 @@ clean:
 run: $(TARGET)
 	./$(TARGET)
 
-debug: CFLAGS += -DDEBUG
-debug: $(TARGET)
+# Profile-guided optimization targets
+profile-generate: CFLAGS += -fprofile-generate
+profile-generate: LDFLAGS += -fprofile-generate
+profile-generate: clean $(TARGET)
+
+profile-use: CFLAGS += -fprofile-use -fprofile-correction
+profile-use: LDFLAGS += -fprofile-use
+profile-use: $(TARGET)
