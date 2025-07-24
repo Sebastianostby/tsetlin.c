@@ -129,7 +129,7 @@ void tm_experiment_mnist() {
     set_train_data(tm, x_train, y_train, 60000);
     set_eval_data(tm, x_test, y_test, 10000);
 
-    train(tm, 1000);
+    train(tm, 10);
 
 
 }

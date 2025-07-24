@@ -138,11 +138,12 @@ void train(TsetlinMachine* tm, int epochs)
             best_eval_acc = eval_acc;
         }
 
-        printf("[%d/%d] Train Time: %fs, Train Acc: %f, Eval Acc: %f, Best Eval Acc: %f\n", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
-        
+        printf("\r[%d/%d] Train Time: %fs, Train Acc: %f, Eval Acc: %f, Best Eval Acc: %f", epoch+1, epochs, et-st, train_acc, eval_acc, best_eval_acc);
+        fflush(stdout);
+
     }
     double et_train = perf_counter();
 
-    printf("Total train time: %f", et_train-st_train);
+    printf("\nTotal train time: %f", et_train-st_train);
     
 }
