@@ -19,7 +19,8 @@ OBJECTS = $(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(SOURCES)))
 all: release
 
 # Release build with maximum optimization
-release: CFLAGS += -DNDEBUG -fomit-frame-pointer -funroll-loops -ffast-math -ftree-vectorize -finline-functions -fno-signed-zeros -fno-trapping-math -falign-functions=16 -falign-loops=16 -falign-jumps=16
+release: CFLAGS += -DNDEBUG -fomit-frame-pointer -funroll-loops -ffast-math -ftree-vectorize -finline-functions -fno-signed-zeros -fno-trapping-math -falign-functions=16 -falign-loops=16 -falign-jumps=16 -fopenmp
+release: LDFLAGS += -fopenmp
 release: $(TARGET)
 
 # Debug build (your original flags plus debug info)

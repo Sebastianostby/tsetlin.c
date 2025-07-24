@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <omp.h>
 #include "../include/rng.h"
 #include "../include/core.h"
 
 
 void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses) 
 {
-
+    #pragma omp parallel for
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
     {
 
@@ -40,6 +41,7 @@ void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int n
 
 void evaluate_clauses(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses) 
 {
+    #pragma omp parallel for
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
     {
         bool is_empty_clause = true;
@@ -86,7 +88,8 @@ void evaluate_clauses(int *C, int *clause_outputs, int *literals, int num_litera
 
 void update_clauses(int *C, int *W, int *clause_outputs, int *literals, int num_literals, int target, int not_target, int num_clauses, float pos_update_p, float neg_update_p, float s_min_inv, float s_inv, FastRNG* rng)
 {
-
+    
+    #pragma omp parallel for
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
     {   
         if (fast_random_prob(rng) <= pos_update_p)
