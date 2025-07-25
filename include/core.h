@@ -4,7 +4,7 @@
 
 #include "rng.h"
 
-void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses);
+void evaluate_clauses_training(int *C, int *clause_outputs, const int *literals, int num_literals, int num_clauses);
 void evaluate_clauses(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses); 
 void update_clauses(int *C, int *W, int *clause_outputs, int *literals, int num_literals, int target, int not_target, int num_clauses, float pos_update_p, float neg_update_p, float s_min_inv, float s_inv, FastRNG* rng);
 void update_clause(int *C, int *W, int target, const int *literals, int num_literals, const int *clause_output, int num_clauses, int clause_k, int class_k, float s_min_inv, float s_inv, FastRNG* rng);

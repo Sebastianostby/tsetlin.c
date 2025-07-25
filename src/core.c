@@ -4,26 +4,29 @@
 #include "../include/rng.h"
 #include "../include/core.h"
 
+typedef struct {
+    FastRNG rng;
+} ThreadRNG;
 
-void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses) 
+void evaluate_clauses_training(int *C, int *clause_outputs, const int *literals, int num_literals, int num_clauses) 
 {
-    #pragma omp parallel for num_threads(omp_get_num_procs() - 1)
+    #pragma omp parallel for schedule(static) num_threads(omp_get_num_procs() - 1)
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
     {
-
+        const int clause_offset = clause_k * (2 * num_literals);
+        
         for (int literal_k = 0; literal_k < num_literals; literal_k++)
         {
-            if (C[clause_k * (2 * num_literals) + literal_k] > 0)
+            if (C[clause_offset + literal_k] > 0)
             {
                 if (literals[literal_k] == 0)
                 {
                     clause_outputs[clause_k] = 0;
                     break;
                 }
-                
             }
 
-            if (C[clause_k * (2 * num_literals) + literal_k + num_literals] > 0) 
+            if (C[clause_offset + literal_k + num_literals] > 0) 
             {
                 if (literals[literal_k] == 1)
                 {
@@ -31,9 +34,7 @@ void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int n
                     break;
                 }
             }
-
         }
-        
     }
     
 }
@@ -41,7 +42,7 @@ void evaluate_clauses_training(int *C, int *clause_outputs, int *literals, int n
 
 void evaluate_clauses(int *C, int *clause_outputs, int *literals, int num_literals, int num_clauses) 
 {
-    #pragma omp parallel for num_threads(omp_get_num_procs() - 1)
+    #pragma omp parallel for schedule(static) num_threads(omp_get_num_procs() - 1)
     for (int clause_k = 0; clause_k < num_clauses; clause_k++)
     {
         bool is_empty_clause = true;
@@ -89,35 +90,48 @@ void evaluate_clauses(int *C, int *clause_outputs, int *literals, int num_litera
 void update_clauses(int *C, int *W, int *clause_outputs, int *literals, int num_literals, int target, int not_target, int num_clauses, float pos_update_p, float neg_update_p, float s_min_inv, float s_inv, FastRNG* rng)
 {
     
-    #pragma omp parallel for num_threads(omp_get_num_procs() - 1)
-    for (int clause_k = 0; clause_k < num_clauses; clause_k++)
-    {   
-        if (fast_random_prob(rng) <= pos_update_p)
-        {
-            update_clause(C, W, 1, literals, num_literals, clause_outputs, num_clauses, clause_k, target, s_min_inv, s_inv, rng);
-        }
+    
+    #pragma omp parallel num_threads(omp_get_num_procs() - 1)
+    {
 
-        if (fast_random_prob(rng) <= neg_update_p)
-        {
-            update_clause(C, W, -1, literals, num_literals, clause_outputs, num_clauses, clause_k, not_target, s_min_inv, s_inv, rng);
+        FastRNG thread_rng;
+        fast_rng_init(&thread_rng, rng->state + omp_get_thread_num() * 1000000);
+
+        #pragma omp for schedule(static)
+        for (int clause_k = 0; clause_k < num_clauses; clause_k++)
+        {   
+            if (fast_random_prob(&thread_rng) <= pos_update_p)
+            {
+                update_clause(C, W, 1, literals, num_literals, clause_outputs, num_clauses, clause_k, target, s_min_inv, s_inv, &thread_rng);
+            }
+    
+            if (fast_random_prob(&thread_rng) <= neg_update_p)
+            {
+                update_clause(C, W, -1, literals, num_literals, clause_outputs, num_clauses, clause_k, not_target, s_min_inv, s_inv, &thread_rng);
+            }
+                
         }
-            
+        
     }
+    
     
 }
 
 
 void update_clause(int *C, int *W, int target, const int *literals, int num_literals, const int *clause_output, int num_clauses, int clause_k, int class_k, float s_min_inv, float s_inv, FastRNG* rng)
 {
+
+    const int clause_offset = class_k * num_clauses;
+
     int sign;
-    if (W[class_k * num_clauses + clause_k] >= 0) sign = 1; else sign = -1;
+    if (W[clause_offset + clause_k] >= 0) sign = 1; else sign = -1;
 
 
     if (target * sign > 0)
     {
         if (clause_output[clause_k] == 1)
         {
-            W[class_k * num_clauses + clause_k] += sign;
+            W[clause_offset + clause_k] += sign;
             T1aFeedback(C, clause_k, literals, num_literals, s_min_inv, s_inv, rng);
         }
         else
@@ -130,7 +144,7 @@ void update_clause(int *C, int *W, int target, const int *literals, int num_lite
     {
         if (clause_output[clause_k] == 1)
         {
-            W[class_k * num_clauses + clause_k] -= sign;
+            W[clause_offset + clause_k] -= sign;
             T2Feedback(C, clause_k, literals, num_literals);
         }
         
@@ -141,9 +155,9 @@ void update_clause(int *C, int *W, int target, const int *literals, int num_lite
 
 void T1aFeedback(int *C, int clause_k, const int *literals, int num_literals, float s_min_inv, float s_inv, FastRNG* rng) 
 {
-    int upper_state =  127;
-    int lower_state = -127;
-
+    const int upper_state = 127;
+    const int lower_state = -127;
+    const int clause_offset = clause_k * (2 * num_literals);
 
     for (int literal_k = 0; literal_k < num_literals; literal_k++)
     {
@@ -151,17 +165,17 @@ void T1aFeedback(int *C, int clause_k, const int *literals, int num_literals, fl
         {
             if(fast_random_prob(rng) <= s_min_inv)
             {
-                if (C[clause_k * (2 * num_literals) + literal_k] < upper_state)
+                if (C[clause_offset + literal_k] < upper_state)
                 {
-                    C[clause_k * (2 * num_literals) + literal_k] ++;
+                    C[clause_offset + literal_k] ++;
                 }
             }
 
             if (fast_random_prob(rng) <= s_inv)
             {
-                if (C[clause_k * (2 * num_literals) + literal_k + num_literals] > lower_state)
+                if (C[clause_offset + literal_k + num_literals] > lower_state)
                 {
-                    C[clause_k * (2 * num_literals) + literal_k + num_literals] --;
+                    C[clause_offset + literal_k + num_literals] --;
                 }
                 
             }
@@ -171,17 +185,17 @@ void T1aFeedback(int *C, int clause_k, const int *literals, int num_literals, fl
         {
             if (fast_random_prob(rng) <= s_inv)
             {
-                if (C[clause_k * (2 * num_literals) + literal_k] > lower_state)
+                if (C[clause_offset + literal_k] > lower_state)
                 {
-                    C[clause_k * (2 * num_literals) + literal_k] --;
+                    C[clause_offset + literal_k] --;
                 }
             }
 
             if(fast_random_prob(rng) <= s_min_inv)
             {
-                if (C[clause_k * (2 * num_literals) + literal_k + num_literals] < upper_state)
+                if (C[clause_offset + literal_k + num_literals] < upper_state)
                 {
-                    C[clause_k * (2 * num_literals) + literal_k + num_literals] ++;
+                    C[clause_offset + literal_k + num_literals] ++;
                 }
             }
 
@@ -195,24 +209,25 @@ void T1aFeedback(int *C, int clause_k, const int *literals, int num_literals, fl
 
 void T1bFeedback(int *C, int clause_k, int num_literals, float s_inv, FastRNG* rng) 
 {
-    int lower_state = -127;
+    const int lower_state = -127;
+    const int clause_offset = clause_k * (2 * num_literals);
 
     for (int literal_k = 0; literal_k < num_literals; literal_k++)
     {
         if (fast_random_prob(rng) <= s_inv)
         {
-            if (C[clause_k * (2 * num_literals) + literal_k] > lower_state)
+            if (C[clause_offset + literal_k] > lower_state)
             {
-                C[clause_k * (2 * num_literals) + literal_k] --;
+                C[clause_offset + literal_k] --;
             }
             
         }
 
         if (fast_random_prob(rng) <= s_inv)
         {
-            if (C[clause_k * (2 * num_literals) + literal_k + num_literals] > lower_state)
+            if (C[clause_offset + literal_k + num_literals] > lower_state)
             {
-                C[clause_k * (2 * num_literals) + literal_k + num_literals] --;
+                C[clause_offset + literal_k + num_literals] --;
             }
         }
         
@@ -223,22 +238,25 @@ void T1bFeedback(int *C, int clause_k, int num_literals, float s_inv, FastRNG* r
 
 void T2Feedback(int *C, int clause_k, const int *literals, int num_literals)
 {
+
+    const int clause_offset = clause_k * (2 * num_literals);
+
     for (int literal_k = 0; literal_k < num_literals; literal_k++)
     {
         if (literals[literal_k] == 0)
         {
-            if (C[clause_k * (2 * num_literals) + literal_k] <= 0)
+            if (C[clause_offset + literal_k] <= 0)
             {
-                C[clause_k * (2 * num_literals) + literal_k] ++;
+                C[clause_offset + literal_k] ++;
             }
             
         }
 
         else
         {
-            if (C[clause_k * (2 * num_literals) + literal_k + num_literals] <= 0)
+            if (C[clause_offset + literal_k + num_literals] <= 0)
             {
-                C[clause_k * (2 * num_literals) + literal_k + num_literals] ++;
+                C[clause_offset + literal_k + num_literals] ++;
             }
         }
         

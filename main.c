@@ -119,6 +119,7 @@ void tm_experiment_mnist() {
         printf("Failed to load MNIST Test data.\n");
         return;
     }
+    
     TsetlinMachine* tm = allocate_memory(500, 10, 784, 625, 10.0, 42);
     printf("Clauses: %d\n", tm->num_clauses);
     printf("Classes: %d\n", tm->num_classes);  
